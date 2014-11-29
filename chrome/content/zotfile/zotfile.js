@@ -44,6 +44,7 @@ Zotero.ZotFile = {
     tagMod:null,
     renameNotifierID:null,
     outlineNotifierID:null,
+    xhtml:'http://www.w3.org/1999/xhtml',
 
 
     // ========================= //
@@ -52,7 +53,9 @@ Zotero.ZotFile = {
 
     versionChanges: function (currentVersion) {
         // open webpage
-        var open_page = ["3.3", "3.2", "3.1", "2.0", "2.3"];
+        var open_page = ["4.1", "4.0", "3.3", "3.2", "3.1", "2.0", "2.3"];
+        var i, j;
+        var searches, conditions;
 
         if(this.prefs.getCharPref("version")==="" || open_page.indexOf(currentVersion) != -1) {
             if(!Zotero.isStandalone) this.futureRun(function(){gBrowser.selectedTab = gBrowser.addTab(Zotero.ZotFile.changelogURL); });
@@ -61,7 +64,7 @@ Zotero.ZotFile = {
         // version 3
         // - add tags to parent items for attachments on tablet
         // - transfer project folder preferences to JSON format
-        if(this.prefs.getCharPref("version")!=="" && currentVersion.indexOf('3')==0 &&
+        if(this.prefs.getCharPref("version")!=="" && currentVersion.indexOf('3')===0 &&
             !this.prefs.getBoolPref("zotfile3update")) {
 
             // updated to version 3
@@ -73,7 +76,7 @@ Zotero.ZotFile = {
 
             // change tablet tags
             var atts = this.getAttachmentsOnTablet();
-            for (var j=0; j < atts.length; j++) {
+            for (j=0; j < atts.length; j++) {
                 // if attachment on tablet, add tag for modified tablet item and remove tablet tag
                 if(!this.getTabletStatusModified(atts[j])) {
                     this.addTabletTag(atts[j], this.tag);
@@ -84,10 +87,10 @@ Zotero.ZotFile = {
                 }
             }
             // change saved searches
-            var searches=Zotero.Searches.getAll();
-            for(var i=0; i<searches.length;i++ ) {
-                var conditions=searches[i].getSearchConditions();
-                for(var j=1; j<conditions.length;j++ ) {
+            searches=Zotero.Searches.getAll();
+            for(i=0; i<searches.length;i++ ) {
+                conditions=searches[i].getSearchConditions();
+                for(j=1; j<conditions.length;j++ ) {
                     if(conditions[j].condition=="tag" && conditions[j].value=="_tablet") {
                         searches[i].updateCondition(conditions[j].id,'tag','contains','_tablet');
                         searches[i].save();
@@ -127,10 +130,10 @@ Zotero.ZotFile = {
             }
 
             // change saved searches
-            var searches=Zotero.Searches.getAll();
-            for(var i=0; i<searches.length;i++ ) {
-                var conditions=searches[i].getSearchConditions();
-                for(var j=1; j<conditions.length;j++ ) {
+            searches=Zotero.Searches.getAll();
+            for(i=0; i<searches.length;i++ ) {
+                conditions=searches[i].getSearchConditions();
+                for(j=1; j<conditions.length;j++ ) {
                     if(conditions[j].condition=="tag" && conditions[j].value=="_READ") {
                         searches[i].updateCondition(conditions[j].id,'tag',conditions[j].operator,'_tablet');
                         searches[i].save();
@@ -233,11 +236,9 @@ Zotero.ZotFile = {
         // add event listener for selecting items in zotero tree
         if(Zotero.ZotFile.prefs.getBoolPref('tablet')) {
             var pane = this.wm.getMostRecentWindow("navigator:browser").ZoteroPane,
-                tree = pane.document.getElementById('zotero-items-tree'),
-                onselect = tree.getAttribute('onselect'),
-                updated = onselect + '; Zotero.ZotFile.attboxUpdateTabletStatus();';
-            if(onselect.indexOf('attboxUpdateTabletStatus')==-1)
-                tree.setAttribute('onselect', updated.replace(';;', ';'));
+                tree = pane.document.getElementById('zotero-items-tree');
+            tree.removeEventListener('select', Zotero.ZotFile.attboxUpdateTabletStatus);
+            tree.addEventListener('select', Zotero.ZotFile.attboxUpdateTabletStatus);
         }
     },
 
@@ -311,12 +312,12 @@ Zotero.ZotFile = {
                     // itemRecognizer._items
                 }
                 setTimeout(test,2000);*/
-            }
+            };
             // get selected items
             var win = zz.wm.getMostRecentWindow("navigator:browser");
             var items = win.ZoteroPane.getSelectedItems();
             // continue if nothing is selected
-            if(items.length==0) {
+            if(items.length===0) {
                 recognizePDF(file);
                 return;
             }
@@ -444,7 +445,7 @@ Zotero.ZotFile = {
                         }
                         // skip if file already has correct filename
                         var filename = item.getFilename().replace(/\.[^/.]+$/, "");
-                        if(filename.indexOf(zz.getFilename(parent,filename))==0) continue;
+                        if(filename.indexOf(zz.getFilename(parent,filename))===0) continue;
                         // exclude current key for next event
                         zz.excludeAutorenameKeys.push(key);
                         // ask user
@@ -1159,25 +1160,31 @@ Zotero.ZotFile = {
             {
                 'label': 'View PDF',
                 'tooltiptext': '',
-                'oncommand': 'Zotero.ZotFile.openTabletFile();',
+                'command': function(e) {Zotero.ZotFile.openTabletFile();},
                 'hidden': tablet ? 'false' : 'true'
             },
             {
                 'label': 'Show File',
                 'tooltiptext': '',
-                'oncommand': 'Zotero.ZotFile.showTabletFile();',
+                'command': function(e) {Zotero.ZotFile.showTabletFile();},
                 'hidden': tablet ? 'false' : 'true'
             },
             {
                 'label': 'Send to Tablet',
                 'tooltiptext': '',
-                'oncommand': 'Zotero.ZotFile.sendSelectedAttachmentsToTablet(-1); Zotero.ZotFile.buildTabletMenu();',
+                'command': function(e) {
+                    Zotero.ZotFile.sendSelectedAttachmentsToTablet(-1);
+                    Zotero.ZotFile.buildTabletMenu();
+                },
                 'disabled': tablet ? 'true' : 'false'
             },
             {
                 'label': 'Get from Tablet',
                 'tooltiptext': '',
-                'oncommand': 'Zotero.ZotFile.getSelectedAttachmentsFromTablet(); Zotero.ZotFile.buildTabletMenu();',
+                'command': function(e) {
+                    Zotero.ZotFile.getSelectedAttachmentsFromTablet();
+                    Zotero.ZotFile.buildTabletMenu();
+                },
                 'disabled': tablet ? 'false' : 'true'
             }
         ];
@@ -1186,7 +1193,10 @@ Zotero.ZotFile = {
                 keys = Object.keys(item),
                 menuitem = pane.document.createElement("menuitem");
             for(key in Object.keys(item))
-                menuitem.setAttribute(keys[key], item[keys[key]]);
+                if (keys[key]!='command')
+                    menuitem.setAttribute(keys[key], item[keys[key]]);
+                else
+                    menuitem.addEventListener(keys[key], item[keys[key]]);
             menupopup.appendChild(menuitem);
             if(item.label=='Show File' && tablet)
                 menupopup.appendChild(pane.document.createElement("menuseparator"));
@@ -1205,7 +1215,10 @@ Zotero.ZotFile = {
             subfolders.forEach(function(folder, i) {
                 var menuitem = pane.document.createElement("menuitem");
                 menuitem.setAttribute('label', folder.label);
-                menuitem.setAttribute('oncommand', 'Zotero.ZotFile.sendSelectedAttachmentsToTablet(' + i + '); Zotero.ZotFile.buildTabletMenu();');
+                menuitem.addEventListener('command', function(event) {
+                    Zotero.ZotFile.sendSelectedAttachmentsToTablet(i);
+                    Zotero.ZotFile.buildTabletMenu();
+                });
                 menupopup.appendChild(menuitem);
             }, Zotero.ZotFile);
             if(subfolders.length>0) projectsSet=1;
@@ -1213,7 +1226,7 @@ Zotero.ZotFile = {
             menupopup.appendChild(pane.document.createElement("menuseparator"));
             var menuitem = pane.document.createElement("menuitem");
             menuitem.setAttribute('label', 'Change subfolders...');
-            menuitem.setAttribute('oncommand', 'Zotero.ZotFile.openSubfolderWindow();');
+            menuitem.addEventListener('command', Zotero.ZotFile.openSubfolderWindow);
             menupopup.appendChild(menuitem);
         }    
     },
@@ -1234,7 +1247,7 @@ Zotero.ZotFile = {
         lab2.setAttribute('crop', 'end');
         lab2.setAttribute('class', 'zotero-clicky');
         lab2.setAttribute('popup', 'zotfile-tablet-popup');
-        lab2.setAttribute('onclick', 'Zotero.ZotFile.buildTabletMenu();');
+        lab2.addEventListener('click', Zotero.ZotFile.buildTabletMenu);
         row.appendChild(lab2);
         rows.appendChild(row);
         // add popup menu to DOM
@@ -1246,17 +1259,18 @@ Zotero.ZotFile = {
     },
 
     attboxUpdateTabletStatus: function() {
-        var pane = this.wm.getMostRecentWindow("navigator:browser").ZoteroPane,
+        var zz = Zotero.ZotFile,
+            pane = zz.wm.getMostRecentWindow("navigator:browser").ZoteroPane,
             items = pane.getSelectedItems(),
             row = pane.document.getElementById('zotfile-tablet-row');
         if(items.length!=1) return;
         var att = items[0];
-        if(!this.prefs.getBoolPref('tablet') || !att.isAttachment() || att._attachmentMIMEType!='application/pdf') {
+        if(!zz.prefs.getBoolPref('tablet') || !att.isAttachment() || att._attachmentMIMEType!='application/pdf') {
             if(row) row.setAttribute('hidden', 'true');
             return;
         }
         // add row if it does not exists
-        if(!row) row = this.attboxAddTabletRow();
+        if(!row) row = zz.attboxAddTabletRow();
         // pdf attachment
         row.setAttribute('hidden', 'false');
         // update tablet status
@@ -1290,7 +1304,7 @@ Zotero.ZotFile = {
 
         // truncate title after : . and ?
         if(this.prefs.getBoolPref("truncate_title")) {
-            var truncate = title.search(/:|\.|\?/);
+            var truncate = title.search(/:|\.|\?|\!/);
             if(truncate!=-1) title = title.substr(0,truncate);
         }
 
@@ -1492,7 +1506,7 @@ Zotero.ZotFile = {
         // define additional fields
         var addFields = {
             'itemType': Zotero.ItemTypes.getLocalizedString(item_type),
-            'titleFormated': this.truncateTitle(item.getField("title")),
+            'titleFormated': this.truncateTitle(item.getField("title", false, true)),
             'author': authors[0],
             'authorLastF': authors[1],
             'authorInitials': authors[2],
@@ -1506,7 +1520,7 @@ Zotero.ZotFile = {
             var value = '',
                 property = (item_type_name in map) ? map[item_type_name] : map['default'];
             if(typeof(property)=='string')
-                value = (property in addFields) ? addFields[property] : item.getField(property);
+                value = (property in addFields) ? addFields[property] : item.getField(property, false, true);
             if(typeof(property)=='object')
                 value = regexWildcard(item, property);
             return value;
@@ -1517,7 +1531,7 @@ Zotero.ZotFile = {
                 output = '';
             // get field
             if (typeof(field)=='string')
-                output = (field in addFields) ? addFields[field] : item.getField(field);
+                output = (field in addFields) ? addFields[field] : item.getField(field, false, true);
             if (typeof(field)=='object')
                 output = itemtypeWildcard(item, field);
             // operations
@@ -1562,7 +1576,7 @@ Zotero.ZotFile = {
                 value = '';
             // if string, get field from zotero or using additional fields
             if(typeof(property)=='string')
-                value = (property in addFields) ? addFields[property] : item.getField(property);
+                value = (property in addFields) ? addFields[property] : item.getField(property, false, true);
             if(typeof(property)=='object') {
                 // javascript object with item type specific field names (e.g. '%w')
                    /* Note: 'default' key defines default, only include item types that are different */
@@ -2232,24 +2246,60 @@ Zotero.ZotFile = {
     // FUNCTIONS: TABLET FUNCTIONS //
     // =========================== //
 
+    // https://developer.mozilla.org/en-US/Add-ons/Overlay_Extensions/XUL_School/DOM_Building_and_HTML_Insertion#Safely_Using_Remote_HTML
+    /**
+     * Safely parse an HTML fragment, removing any executable
+     * JavaScript, and return a document fragment.
+     *
+     * @param {Document} doc The document in which to create the
+     *     returned DOM tree.
+     * @param {string} html The HTML fragment to parse.
+     * @param {boolean} allowStyle If true, allow <style> nodes and
+     *     style attributes in the parsed fragment. Gecko 14+ only.
+     * @param {nsIURI} baseURI The base URI relative to which resource
+     *     URLs should be processed. Note that this will not work for
+     *     XML fragments.
+     * @param {boolean} isXML If true, parse the fragment as XML.
+     */
+    parseHTML: function(html) {
+        var ioService = Components.classes["@mozilla.org/network/io-service;1"]
+                        .getService(Components.interfaces.nsIIOService);
+        var allowStyle = true,
+            baseURI = ioService.newURI(this.xhtml, null, null),
+            isXML = false,
+            PARSER_UTILS = "@mozilla.org/parserutils;1";
+
+        // User the newer nsIParserUtils on versions that support it.
+        if (PARSER_UTILS in Components.classes) {
+            var parser = Components.classes[PARSER_UTILS]
+                                   .getService(Components.interfaces.nsIParserUtils);
+            if ("parseFragment" in parser)
+                return parser.parseFragment(html, allowStyle ? parser.SanitizerAllowStyle : 0,
+                                            !!isXML, baseURI, document.documentElement);
+        }
+
+        return Components.classes["@mozilla.org/feed-unescapehtml;1"]
+                         .getService(Components.interfaces.nsIScriptableUnescapeHTML)
+                         .parseFragment(html, !!isXML, baseURI, document.documentElement);
+    },
+
     clearInfo: function (att) {        
         try {
-            // remove new info
-            var content = att.getNote(),
-                note = document.createElement('div');
-            note.innerHTML = content;
+            var win = this.wm.getMostRecentWindow("navigator:browser"),
+                content = att.getNote().replace(/zotero:\/\//g, 'http://zotfile.com/'),
+                fragment = this.parseHTML(content),
+                note = win.document.createElementNS(this.xhtml, 'div');
+            note.appendChild(fragment);
             var p = note.querySelector("#zotfile-data");
             if (p!==null)
                 note.removeChild(p);
-            // remove old info
-            p = note.querySelectorAll("p");
-            for (var i = 0; i < p.length; i++) {
-                if(p[i].innerHTML.indexOf('lastmod{')!=-1)
-                    note.removeChild(p[i]);
-            }
-            note.innerHTML = note.innerHTML.replace(/(lastmod|mode|location|projectFolder)\{.*?\};?/g,'');
-            // save note
-            att.setNote(note.innerHTML);
+            // save content back to note
+            content = note.innerHTML
+                // remove old zotfile data
+                .replace(/(lastmod|mode|location|projectFolder)\{.*?\};?/g,'')
+                // replace links with zotero links
+                .replace(/http:\/\/zotfile.com\//g, 'zotero://');
+            att.setNote(content);
             att.save();
         }
         catch(e) {
@@ -2259,21 +2309,21 @@ Zotero.ZotFile = {
     },
 
     getInfo: function (att, key) {
+        var win = this.wm.getMostRecentWindow("navigator:browser"),
+            note = win.document.createElementNS(this.xhtml, 'div'),
+            content = att.getNote(),
+            value;
         try {
-            // create element with note content
-            var content = att.getNote(),
-                note = document.createElement('div'),
-                value;
             try {
-                note.innerHTML = content;
+                note.appendChild(this.parseHTML(content));
             }
-            catch (e){
+            catch(e) {
                 var match = content.match(/<p id="zotfile-data".+<\/p>/);
                 if (match===null)
                     match = content.match(/lastmod{.+}/);
                 if (match===null)
                     return '';
-                note.innerHTML = match[0];
+                note.appendChild(this.parseHTML(match[0]));
             }
             // get zotfile data
             var p = note.querySelector("#zotfile-data");
@@ -2299,22 +2349,17 @@ Zotero.ZotFile = {
 
     addInfo: function(att, key, value) {
         // get current content of note
-        var content = att.getNote(),
-            note = document.createElement('div'),
-            data = {},
-            htmlEncode = function(str) {
-                return document.createElement('a').appendChild( 
-                    document.createTextNode(str)).parentNode.innerHTML;
-            };
+        var win = this.wm.getMostRecentWindow("navigator:browser"),
+            content = att.getNote().replace(/zotero:\/\//g, 'http://zotfile.com/'),
+            note = win.document.createElementNS(this.xhtml, 'div'),
+            data = {};
         try {
-            note.innerHTML = content;
+            note.appendChild(this.parseHTML(content));
         }
         catch (e){
             var match = content.match(/<p id="zotfile-data".+<\/p>/);
-            if (match===null)
-                note.innerHTML = '';
-            else
-                note.innerHTML = match[0];
+            if (match!==null)
+                note.appendChild(this.parseHTML(match[0]));
         }
         // for location tag: replace destination folder with [BaseFolder]
         if(key=="location" && this.prefs.getBoolPref("tablet.dest_dir_relativePath"))
@@ -2322,13 +2367,13 @@ Zotero.ZotFile = {
         // get zotfile element
         var p = note.querySelector("#zotfile-data");
         // doesn't exists...
-        if (p===null) {            
+        if (p===null) {
             data[key] = value;
-            p = document.createElement("p");
+            p = win.document.createElementNS(this.xhtml, 'p');
             p.setAttribute('id', 'zotfile-data');
             p.setAttribute('style', 'color: #cccccc;');
             p.setAttribute('title', JSON.stringify(data));
-            p.innerHTML = '(hidden zotfile data)';
+            p.textContent = '(hidden zotfile data)';
             note.appendChild(p);
         }
         // already exists...
@@ -2336,10 +2381,9 @@ Zotero.ZotFile = {
             data = JSON.parse(p.getAttribute('title'));
             data[key] = value;
             p.setAttribute('title', JSON.stringify(data));
-            // if(key=='projectFolder') p.innerHTML = htmlEncode('(Attachment stored in tablet folder "[Basefolder]' + value + '")');
         }
         // save changes in zotero note
-        att.setNote(note.innerHTML);
+        att.setNote(note.innerHTML.replace(/http:\/\/zotfile.com\//g, 'zotero://'));
         att.save();
     },
 
@@ -3282,7 +3326,8 @@ Zotero.ZotFile = {
                 return;
             }            
             // create toc from outline
-            var toc = document.createElement('ul'),
+            var win = zz.wm.getMostRecentWindow("navigator:browser"),
+                toc = win.document.createElementNS(zz.xhtml, 'ul'),
                 key = att.key,
                 lib = att.libraryID===null ? 0 : att.libraryID,
                 href = 'zotero://open-pdf/%(lib)_%(key)/%(page)',
@@ -3293,20 +3338,20 @@ Zotero.ZotFile = {
             toc.setAttribute('style', 'list-style-type: none; padding-left:0px');
             toc.setAttribute('id', 'toc');
             var create_toc = function(entry) {
-                var li = document.createElement('li'),
-                    a  = document.createElement('a');
+                var li = win.document.createElementNS(zz.xhtml, 'li'),
+                    a  = win.document.createElementNS(zz.xhtml, 'a');
                 if (!firstElement)
                     li.setAttribute('style', entry.items.length>0 ? 'padding-top:8px' : 'padding-top:4px');
                 firstElement = false;
                 a.setAttribute('href', zz.str_format(href, {'lib': lib, 'key': key, 'page': entry.page + 1}));
-                a.innerHTML = Zotero.Utilities.htmlSpecialChars(entry.title);
+                a.textContent = Zotero.Utilities.htmlSpecialChars(entry.title);
                 if(entry.page!==undefined)
                     li.appendChild(a);
                 if(entry.page!==undefined && entry.items.length>0)
                     lvl++;
                 // add subitems
                 if(entry.items.length>0 && lvl <= zz.prefs.getIntPref('pdfOutline.tocDepth')) {
-                    var ul = document.createElement('ul');
+                    var ul = win.document.createElementNS(zz.xhtml, 'ul');
                     ul.setAttribute('style', zz.str_format(style, {'padding': 12*(lvl-1)}));        
                     entry.items.forEach(create_toc, ul);
                     li.appendChild(ul);
@@ -3317,22 +3362,15 @@ Zotero.ZotFile = {
             };
             outline.forEach(create_toc, toc);
             // add toc to note
-            var note = document.createElement('div'),
-                title = document.createElement('p'),
-                content = att.getNote();
-            try {
-                note.innerHTML = content;
-            }
-            catch (e){
-                var match = content.match(/<p id="zotfile-data".+<\/p>/);
-                if (match===null)
-                    note.innerHTML = '';
-                else
-                    note.innerHTML = match[0];
-            }
+            var note = win.document.createElementNS(zz.xhtml, 'div'),
+                title = win.document.createElementNS(zz.xhtml, 'p'),
+                content = att.getNote().replace(/zotero:\/\//g, 'http://zotfile.com/');
+            note.appendChild(zz.parseHTML(content));
             // title
             title.setAttribute('id', 'title');
-            title.innerHTML = '<strong>Contents</strong>'
+            var txt = win.document.createElementNS(zz.xhtml, 'strong');
+            txt.textContent = 'Contents';
+            title.appendChild(txt);
             // remove previous title and toc
             var pre_toc = note.querySelector('#toc');
             if (pre_toc!==null) note.removeChild(pre_toc);
@@ -3342,7 +3380,7 @@ Zotero.ZotFile = {
             note.insertBefore(toc, note.firstChild);
             note.insertBefore(title, note.firstChild);
             // save toc in note
-            att.setNote(note.innerHTML);
+            att.setNote(note.innerHTML.replace(/http:\/\/zotfile.com\//g, 'zotero://'));
             att.save();
             // done with this att...            
             itemProgress.setIcon('chrome://zotero/skin/tick.png');
@@ -3704,7 +3742,7 @@ Zotero.ZotFile = {
                     var format_markup = anno.subtype == "Highlight" ? format_highlight : format_underline;
                     for (var k = 0; k < repl.length; k++)
                         anno.markup = anno.markup.replace(reg[k], repl[k].replacement);
-                    var markup_formated = zz.str_format(format_markup, {'content': anno.markup, 'cite': link, 'page': page, 'uri': uri, 'color': color, 'color_category': color_category_hex});
+                    var markup_formated = zz.str_format(format_markup, {'content': anno.markup, 'cite': link, 'page': page, 'uri': uri, 'label': anno.title, 'color': color, 'color_category': color_category_hex});
                     if(!separate_color_notes)
                         note += markup_formated;
                     else {
@@ -3718,12 +3756,12 @@ Zotero.ZotFile = {
                   (!anno.markup || this.strDistance(anno.content,anno.markup)>0.15 )) {                    
                     var content = anno.content.replace(/(\r\n|\n|\r)/gm,"<br>");
                     // '<p><i>%(content) (<a href="%(uri)">note on p.%(page)</a>)</i></p><br>'
-                    var content_formated = zz.str_format(format_note, {'content': content, 'cite': link, 'page': page, 'uri': uri,'color': color, 'color_category': color_category_hex});
+                    var content_formated = zz.str_format(format_note, {'content': content, 'cite': link, 'page': page, 'uri': uri, 'label': anno.title,'color': color, 'color_category': color_category_hex});
                     if(!separate_color_notes)
                         note += content_formated;
                     else {
                         if(!(color_category in note))
-                            note[color_category] = zz.str_format(format_title_color, {'title': str_title, 'date': date_str, 'color': color_category});
+                            note[color_category] = zz.str_format(format_title_color, {'title': str_title, 'date': date_str, 'label': anno.title, 'color': color_category});
                         note[color_category] += content_formated;
                     }
                 }
